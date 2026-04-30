@@ -1,4 +1,4 @@
-# MetaMemory 系统架构设计 v2.2
+# MetaMemory 系统架构设计 v2.3
 
 > **文档版本**：2.2 | **最后更新**：2026-04-29 | **作者**：MetaMemory 团队
 
@@ -178,7 +178,7 @@ StorageManager.search_memories()
   │
   ├─► HybridRetrievalEngine.rank()
   │     · 语义分数: cosine_similarity × 1.0
-  │     · 结构分数: 0.0 (v2.2 纯语义，不使用六爻编码)
+  │     · 结构分数: 0.0 (v2.3 纯语义，不使用六爻编码)
   │     · 热度加权: hot_score 正相关
   │     · 最终排序: 综合分数 DESC
   │
@@ -394,4 +394,4 @@ ERROR   - 功能异常（API 调用失败、数据库错误）
 
 ---
 
-*本文档描述 MetaMemory v2.2 架构，与代码实现保持同步。如有疑问，请参考 `main_api.py` (1200 行) 和 `core/` 目录下的实现。*
+*本文档描述 MetaMemory v2.3 架构，与代码实现保持同步。如有疑问，请参考 `main_api.py` (1200 行) 和 `core/` 目录下的实现。*

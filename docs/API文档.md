@@ -1,4 +1,4 @@
-# MetaMemory API 参考文档 v2.2
+# MetaMemory API 参考文档 v2.3
 
 > **Base URL**：`http://localhost:8000` | **API 版本**：v1 | **协议**：REST/JSON
 > **OpenAPI 文档**：启动服务后访问 `http://localhost:8000/docs` (Swagger UI) 或 `/redoc`
@@ -25,7 +25,7 @@
 
 ### 1.1 认证
 
-当前版本（v2.2）API 为**开放接口**，未强制要求认证头。生产环境建议在前置 Nginx 层添加 API Key 或 JWT 验证。
+当前版本（v2.3）API 为**开放接口**，未强制要求认证头。生产环境建议在前置 Nginx 层添加 API Key 或 JWT 验证。
 
 未来版本将通过 `Authorization: Bearer <token>` 头进行认证（预留）。
 

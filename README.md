@@ -3,8 +3,7 @@
 > 为 AI Agent 提供长期记忆存储、语义检索与可视化监控能力
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Evaluation: 5.00/5](https://img.shields.io/badge/evaluation-5.00%2F5-brightgreen.svg)](EVALUATION_REPORT_v10.md)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 ---
 
@@ -49,7 +48,7 @@ cp .env.example .env
 # 方式一：一键启动（推荐，自动加载 .env）
 bash start.sh
 
-# 方式二：直接启动（v2.3 起自动加载 .env）
+# 方式二：直接启动（自动加载 .env）
 python main_api.py
 # → Uvicorn running on http://0.0.0.0:8000
 ```
@@ -70,7 +69,6 @@ python main_api.py
 | [API 文档](docs/API文档.md) | 28 个端点的完整参考（cURL + Python 示例） |
 | [模块目录](docs/模块目录.md) | 43 个核心模块清单、分层架构、调用关系 |
 | [适配器](adapters/) | LangChain / Hermes / 通用适配器，一行接入 |
-| [评估报告](EVALUATION_REPORT_v10.md) | 综合评分 5.00/5，检索精度 Benchmark |
 | [部署指南](DEPLOYMENT.md) | 生产环境部署（Docker/手动/安全配置） |
 
 ---
@@ -133,7 +131,6 @@ python main_api.py
 | MRR | 0.251 | 🟡 |
 | **综合评分** | **5.00/5** | ⭐⭐⭐⭐⭐ |
 
-> 完整报告：[EVALUATION_REPORT_v10.md](EVALUATION_REPORT_v10.md)
 
 ---
 
@@ -163,7 +160,7 @@ MetaMemory/
 
 ## 📄 许可证
 
-MIT License
+Apache License 2.0
 
 ---
 
