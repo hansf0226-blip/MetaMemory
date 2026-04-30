@@ -1,4 +1,4 @@
-# MetaMemory v2.2 - Docker Compose 一键编排
+# MetaMemory v2.3 - Docker Compose 一键编排
 # 包含：MySQL + Redis + Milvus + Ollama + 主服务
 # 使用：docker-compose up -d
 # 最小模式（仅 benchmark）：docker-compose up metamemory
