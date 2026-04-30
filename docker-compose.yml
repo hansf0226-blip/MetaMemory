@@ -1,0 +1,171 @@
+# MetaMemory v2.2 - Docker Compose 一键编排
+# 包含：MySQL + Redis + Milvus + Ollama + 主服务
+# 使用：docker-compose up -d
+# 最小模式（仅 benchmark）：docker-compose up metamemory
+
+version: '3.8'
+
+# 统一网络
+networks:
+  metamemory_net:
+    driver: bridge
+
+# 持久化数据卷
+volumes:
+  mysql_data:
+  redis_data:
+  milvus_data:
+  ollama_data:
+
+services:
+  # ========== 1. MySQL 8.0 数据库 ==========
+  mysql:
+    image: mysql:8.0
+    container_name: yijing_mysql
+    restart: always
+    networks:
+      - metamemory_net
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init_sql.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-yijing_memory_db}
+      MYSQL_USER: ${MYSQL_USER:-yijing}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-yijing123}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========== 2. Redis 缓存 ==========
+  redis:
+    image: redis:6.2-alpine
+    container_name: yijing_redis
+    restart: always
+    networks:
+      - metamemory_net
+    volumes:
+      - redis_data:/data
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========== 3. Milvus 向量数据库 ==========
+  milvus:
+    image: milvusdb/milvus:v2.4.3
+    container_name: yijing_milvus
+    restart: always
+    networks:
+      - metamemory_net
+    volumes:
+      - milvus_data:/var/lib/milvus
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      ETCD_USE_EMBED: true
+      ETCD_DATA_DIR: /var/lib/milvus/etcd
+    ports:
+      - "${MILVUS_PORT:-19530}:19530"
+      - "9091:9091"  # Metrics
+    depends_on:
+      - mysql
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ========== 4. Ollama 离线模型 (可选) ==========
+  ollama:
+    image: ollama/ollama:latest
+    container_name: yijing_ollama
+    restart: always
+    networks:
+      - metamemory_net
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # CPU 模式注释掉上面 deploy 部分
+
+  # ========== 5. MetaMemory 主服务 ==========
+  metamemory:
+    build: .
+    container_name: yijing_api
+    restart: always
+    networks:
+      - metamemory_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      milvus:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      
+      # 数据库配置
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-yijing}:${MYSQL_PASSWORD:-yijing123}@mysql:3306/${MYSQL_DATABASE:-yijing_memory_db}
+      
+      # Redis 配置
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Milvus 配置
+      MILVUS_URI: http://milvus:19530
+      
+      # Ollama 配置
+      OLLAMA_HOST: http://ollama:11434
+      
+      # 应用配置
+      APP_ENV: ${APP_ENV:-production}
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ========== 6. 定时任务调度器 (可选) ==========
+  scheduler:
+    build: .
+    container_name: yijing_scheduler
+    restart: always
+    networks:
+      - metamemory_net
+    depends_on:
+      - metamemory
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-yijing}:${MYSQL_PASSWORD:-yijing123}@mysql:3306/${MYSQL_DATABASE:-yijing_memory_db}
+      REDIS_HOST: redis
+      MILVUS_URI: http://milvus:19530
+    command: python -m apscheduler -c scheduler_config.py
+    profiles:
+      - scheduler

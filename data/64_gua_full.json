@@ -1,0 +1,114 @@
+[
+  {
+    "hex": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "name": "qian",
+    "bagua_type": "qian",
+    "wuxing": "jin",
+    "sancai_layer": "tien"
+  },
+  {
+    "hex": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "name": "kun",
+    "bagua_type": "kun",
+    "wuxing": "tu",
+    "sancai_layer": "tien"
+  },
+  {
+    "hex": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "name": "zhen",
+    "bagua_type": "zhen",
+    "wuxing": "mu",
+    "sancai_layer": "ren"
+  },
+  {
+    "hex": [
+      0,
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "name": "xun",
+    "bagua_type": "xun",
+    "wuxing": "mu",
+    "sancai_layer": "ren"
+  },
+  {
+    "hex": [
+      0,
+      1,
+      0,
+      0,
+      1,
+      0
+    ],
+    "name": "kan",
+    "bagua_type": "kan",
+    "wuxing": "shui",
+    "sancai_layer": "ren"
+  },
+  {
+    "hex": [
+      1,
+      0,
+      1,
+      1,
+      0,
+      1
+    ],
+    "name": "li",
+    "bagua_type": "li",
+    "wuxing": "huo",
+    "sancai_layer": "ren"
+  },
+  {
+    "hex": [
+      0,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    "name": "gen",
+    "bagua_type": "gen",
+    "wuxing": "tu",
+    "sancai_layer": "di"
+  },
+  {
+    "hex": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      0
+    ],
+    "name": "dui",
+    "bagua_type": "dui",
+    "wuxing": "jin",
+    "sancai_layer": "di"
+  }
+]

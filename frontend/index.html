@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MetaMemory · 智能记忆系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        surface: { DEFAULT: '#0a0e14', hover: '#111620', raised: '#161b26' },
+        border: { subtle: 'rgba(255,255,255,0.06)', DEFAULT: 'rgba(255,255,255,0.10)' },
+        accent: { DEFAULT: '#818cf8', hover: '#a5b4fc', muted: 'rgba(129,140,248,0.15)' },
+        gold: { DEFAULT: '#f59e0b', muted: 'rgba(245,158,11,0.15)' },
+        text: { primary: '#f1f5f9', secondary: '#94a3b8', muted: '#64748b' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #08090a; color: #f1f5f9; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0e14; }
+  ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+
+  .glass { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(12px); }
+  .glass-hover:hover { background: rgba(255,255,255,0.04); border-color: rgba(129,140,248,0.2); }
+  .stat-card { transition: all 0.3s ease; }
+  .stat-card:hover { transform: translateY(-2px); border-color: rgba(129,140,248,0.3); box-shadow: 0 8px 32px rgba(129,140,248,0.08); }
+
+  .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+  .btn-primary:hover { background: linear-gradient(135deg, #818cf8, #a78bfa); }
+  .btn-ghost { background: rgba(255,255,255,0.03); color: #94a3b8; border: 1px solid rgba(255,255,255,0;08); border-radius: 6px; padding: 8px 16px; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .btn-ghost:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+  .btn-danger { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); border-radius: 6px; padding: 8px 16px; font-size: 13px; cursor: pointer; }
+  .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+  .nav-item { padding: 10px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; color: #94a3b8; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+  .nav-item:hover { background: rgba(255,255,255,0.04); color: #e2e8f0; }
+  .nav-item.active { background: rgba(129,140,248,0.12); color: #a5b4fc; }
+
+  .category-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .attribute-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; }
+  .modal { background: #111620; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 24px; width: 90%; max-width: 520px; max-height: 85vh; overflow-y: auto; }
+
+  .fade-in { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+
+  .pulse { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  input, select, textarea { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: #e2e8f0; border-radius: 6px; padding: 8px 12px; font-size: 13px; outline: none; transition: border-color 0.2s; }
+  input:focus, select:focus, textarea:focus { border-color: rgba(129,140,248,0.4); }
+  textarea { resize: vertical; min-height: 80px; }
+  label { font-size: 12px; font-weight: 500; color: #94a3b8; margin-bottom: 4px; display: block; }
+
+  tr { transition: background 0.15s; }
+  tr:hover { background: rgba(255,255,255,0.02); }
+</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- Sidebar -->
+<aside class="w-56 flex-shrink-0 border-r border-[rgba(255,255,255,0.06)] bg-[#08090a] flex flex-col">
+  <div class="p-5 border-b border-[rgba(255,255,255,0.06)]">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">⬡</div>
+      <div>
+        <div class="text-sm font-semibold text-[#f1f5f9]">MetaMemory</div>
+        <div class="text-[10px] text-[#64748b]">智能记忆系统</div>
+      </div>
+    </div>
+  </div>
+  <nav class="flex-1 px-3 py-4 space-y-1">
+    <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      仪表盘
+    </div>
+    <div class="nav-item" onclick="switchTab('memories')" id="nav-memories">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      记忆列表
+    </div>
+    <div class="nav-item" onclick="switchTab('search')" id="nav-search">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+      向量检索
+    </div>
+    <div class="nav-item" onclick="switchTab('agents')" id="nav-agents">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Agent 管理
+    </div>
+    <div class="nav-item" onclick="switchTab('config')" id="nav-config">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+      模型配置
+    </div>
+  </nav>
+  <div class="p-3 border-t border-[rgba(255,255,255,0.06)]">
+    <div class="text-[10px] text-[#475569] text-center">MetaMemory v2.3</div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="flex-1 overflow-auto bg-[#0a0e14]">
+  <!-- Header -->
+  <header class="sticky top-0 z-10 bg-[#0a0e14]/80 backdrop-blur-xl border-b border-[rgba(255,255,255,0.06)] px-6 py-3.5 flex items-center justify-between">
+    <h2 class="text-sm font-semibold text-[#94a3b8]" id="page-title">仪表盘</h2>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]">
+        <div class="w-2 h-2 rounded-full bg-emerald-400 pulse"></div>
+        <span class="text-xs text-[#64748b]">API <span class="text-emerald-400">在线</span></span>
+      </div>
+      <button class="btn-ghost text-xs px-3 py-1.5" onclick="refreshAll()">刷新</button>
+    </div>
+  </header>
+
+  <!-- Dashboard Tab -->
+  <section id="tab-dashboard" class="p-6">
+    <!-- Stats Row -->
+    <div class="grid grid-cols-4 gap-4 mb-6" id="stats-row">
+      <div class="stat-card glass rounded-xl p-5">
+        <div class="text-[11px] text-[#64748b] font-medium mb-1">总记忆数</div>
+        <div class="text-2xl font-semibold text-[#f1f5f9]" id="stat-total">—</div>
+        <div class="text-[11px] text-[#64748b] mt-1" id="stat-growth"></div>
+      </div>
+      <div class="stat-card glass rounded-xl p-5">
+        <div class="text-[11px] text-[#64748b] font-medium mb-1">Agent 数</div>
+        <div class="text-2xl font-semibold text-[#f1f5f9]" id="stat-agents">—</div>
+        <div class="text-[11px] text-emerald-400 mt-1">活跃中</div>
+      </div>
+      <div class="stat-card glass rounded-xl p-5">
+        <div class="text-[11px] text-[#64748b] font-medium mb-1">平均热度</div>
+        <div class="text-2xl font-semibold text-[#f59e0b]" id="stat-hot">—</div>
+        <div class="text-[11px] text-[#64748b] mt-1">Hot Score</div>
+      </div>
+      <div class="stat-card glass rounded-xl p-5">
+        <div class="text-[11px] text-[#64748b] font-medium mb-1">向量总数</div>
+        <div class="text-2xl font-semibold text-[#818cf8]" id="stat-vectors">—</div>
+        <div class="text-[11px] text-[#64748b] mt-1">Embedding</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="glass rounded-xl p-5">
+        <h3 class="text-xs font-semibold text-[#94a3b8] mb-4">分类分布</h3>
+        <div id="chart-category" style="height: 300px;"></div>
+      </div>
+      <div class="glass rounded-xl p-5">
+        <h3 class="text-xs font-semibold text-[#94a3b8] mb-4">属性分布</h3>
+        <div id="chart-attribute" style="height: 300px;"></div>
+      </div>
+    </div>
+
+    <!-- Activity table -->
+    <div class="glass rounded-xl p-5">
+      <h3 class="text-xs font-semibold text-[#94a3b8] mb-4">最近记忆</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead><tr class="text-[#64748b] border-b border-[rgba(255,255,255,0.06)]">
+            <th class="text-left py-2 px-3 font-medium">ID</th>
+            <th class="text-left py-2 px-3 font-medium">内容</th>
+            <th class="text-left py-2 px-3 font-medium">分类</th>
+            <th class="text-left py-2 px-3 font-medium">属性</th>
+            <th class="text-left py-2 px-3 font-medium">层级</th>
+            <th class="text-right py-2 px-3 font-medium">热度</th>
+          </tr></thead>
+          <tbody id="recent-memories"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Memories Tab -->
+  <section id="tab-memories" class="p-6 hidden">
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-3">
+        <select id="filter-category" onchange="loadMemories()" class="w-32">
+          <option value="">全部分类</option><option value="乾">乾</option><option value="坤">坤</option><option value="震">震</option><option value="巽">巽</option><option value="坎">坎</option><option value="离">离</option><option value="艮">艮</option><option value="兑">兑</option>
+        </select>
+        <select id="filter-attribute" onchange="loadMemories()" class="w-32">
+          <option value="">全部属性</option><option value="金">金</option><option value="木">木</option><option value="水">水</option><option value="火">火</option><option value="土">土</option>
+        </select>
+        <select id="filter-layer" onchange="loadMemories()" class="w-32">
+          <option value="">全部层级</option><option value="天">天</option><option value="人">人</option><option value="地">地</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="openCreateModal()">+ 新建记忆</button>
+    </div>
+    <div class="glass rounded-xl overflow-hidden">
+      <table class="w-full text-xs">
+        <thead><tr class="text-[#64748b] border-b border-[rgba(255,255,255,0.06)]">
+          <th class="text-left py-2.5 px-3 font-medium">Memory ID</th>
+          <th class="text-left py-2.5 px-3 font-medium">内容</th>
+          <th class="text-left py-2.5 px-3 font-medium">分类</th>
+          <th class="text-left py-2.5 px-3 font-medium">属性</th>
+          <th class="text-left py-2.5 px-3 font-medium">层级</th>
+          <th class="text-right py-2.5 px-3 font-medium">热度</th>
+          <th class="text-right py-2.5 px-3 font-medium">操作</th>
+        </tr></thead>
+        <tbody id="memories-table"></tbody>
+      </table>
+      <div id="memories-pagination" class="flex items-center justify-between p-3 border-t border-[rgba(255,255,255,0.06)]"></div>
+    </div>
+  </section>
+
+  <!-- Search Tab -->
+  <section id="tab-search" class="p-6 hidden">
+    <div class="max-w-2xl mx-auto">
+      <div class="glass rounded-xl p-6 mb-5">
+        <h3 class="text-sm font-semibold text-[#f1f5f9] mb-4">🔮 向量语义检索</h3>
+        <div class="flex gap-3">
+          <input type="text" id="search-input" placeholder="输入搜索内容，基于语义相似度匹配…" class="flex-1" onkeydown="if(event.key==='Enter')doSearch()">
+          <button class="btn-primary" onclick="doSearch()">搜索</button>
+        </div>
+        <div class="flex items-center gap-4 mt-3">
+          <label class="text-[10px] text-[#64748b]">结果数</label>
+          <select id="search-topk" class="w-20"><option>5</option><option>10</option><option>20</option></select>
+          <label class="text-[10px] text-[#64748b]">Agent ID</label>
+          <input type="text" id="search-agent" placeholder="可选" class="w-40">
+        </div>
+      </div>
+      <div id="search-results" class="space-y-3"></div>
+    </div>
+  </section>
+
+  <!-- Agents Tab -->
+  <section id="tab-agents" class="p-6 hidden">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-sm font-semibold text-[#f1f5f9]">Agent 租户管理</h3>
+      <button class="btn-primary" onclick="openAgentModal()">+ 注册 Agent</button>
+    </div>
+    <div id="agents-list" class="grid grid-cols-3 gap-4"></div>
+  </section>
+
+  <!-- Config Tab -->
+  <section id="tab-config" class="p-6 hidden">
+    <div class="max-w-3xl">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-sm font-semibold text-[#f1f5f9]">⚙ 模型配置</h3>
+        <div class="flex gap-2">
+          <button class="btn-ghost text-xs" onclick="loadConfig()">重新加载</button>
+          <button class="btn-primary text-xs" onclick="saveConfig()">保存配置</button>
+        </div>
+      </div>
+      <div class="space-y-4" id="config-form">
+        <!-- Embedding -->
+        <div class="glass rounded-xl p-5">
+          <h4 class="text-xs font-semibold text-[#818cf8] mb-4">🔗 Embedding 配置</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label>Provider</label><select id="cfg-emb-provider" onchange="onEmbProviderChange()">
+              <option value="siliconflow">SiliconFlow (BGE, 免费)</option>
+              <option value="sentence_transformer">SentenceTransformer (本地)</option>
+              <option value="openai">OpenAI 兼容</option>
+              <option value="hash">Hash (最低精度)</option>
+            </select></div>
+            <div><label>Model</label><input type="text" id="cfg-emb-model" placeholder="BAAI/bge-large-zh-v1.5"></div>
+            <div><label>Base URL</label><input type="text" id="cfg-emb-url" placeholder="https://api.siliconflow.cn/v1"></div>
+            <div><label>API Key</label><input type="password" id="cfg-emb-key" placeholder="*** 留空不修改"></div>
+          </div>
+        </div>
+        <!-- Retrieval -->
+        <div class="glass rounded-xl p-5">
+          <h4 class="text-xs font-semibold text-[#818cf8] mb-4">🔍 检索配置</h4>
+          <div class="grid grid-cols-3 gap-3">
+            <div><label>策略</label><select id="cfg-ret-strategy">
+              <option value="pure_embedding">纯语义向量</option>
+              <option value="hybrid">混合检索</option>
+            </select></div>
+            <div><label>Top-K</label><input type="number" id="cfg-ret-topk" min="1" max="50" value="10"></div>
+            <div><label>最低相似度</label><input type="number" id="cfg-ret-min-sim" min="0" max="1" step="0.1" value="0.3"></div>
+          </div>
+        </div>
+        <!-- LLM -->
+        <div class="glass rounded-xl p-5">
+          <h4 class="text-xs font-semibold text-[#818cf8] mb-4">🤖 LLM 编码配置</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label>API URL</label><input type="text" id="cfg-llm-url" placeholder="http://localhost:11434/api/generate"></div>
+            <div><label>Model</label><input type="text" id="cfg-llm-model" placeholder="yijing-encode"></div>
+          </div>
+        </div>
+      </div>
+      <div id="config-status" class="mt-4"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Memory Modal -->
+<div id="memory-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeModal()">
+  <div class="modal fade-in">
+    <h3 class="text-sm font-semibold text-[#f1f5f9] mb-4" id="modal-title">新建记忆</h3>
+    <form id="memory-form" class="space-y-3">
+      <input type="hidden" id="mf-memory-id">
+      <div><label>Agent ID</label><input type="text" id="mf-agent-id" placeholder="agent_xxx" required></div>
+      <div><label>记忆分类</label><select id="mf-category" required>
+        <option value="">选择分类</option><option value="乾">乾</option><option value="坤">坤</option><option value="震">震</option><option value="巽">巽</option><option value="坎">坎</option><option value="离">离</option><option value="艮">艮</option><option value="兑">兑</option>
+      </select></div>
+      <div><label>属性</label><select id="mf-attribute" required>
+        <option value="">选择属性</option><option value="金">金</option><option value="木">木</option><option value="水">水</option><option value="火">火</option><option value="土">土</option>
+      </select></div>
+      <div><label>层级</label><select id="mf-layer" required>
+        <option value="">选择层级</option><option value="天">天</option><option value="人">人</option><option value="地">地</option>
+      </select></div>
+      <div><label>附加标记</label><input type="text" id="mf-tag" placeholder="䷀ 乾为天"></div>
+      <div><label>记忆内容</label><textarea id="mf-content" placeholder="记忆内容…" required></textarea></div>
+      <div><label>热度 (0-1)</label><input type="number" id="mf-hot" min="0" max="1" step="0.1" value="0.5"></div>
+      <div class="flex justify-end gap-2 pt-3">
+        <button type="button" class="btn-ghost" onclick="closeModal()">取消</button>
+        <button type="button" class="btn-danger hidden" id="btn-delete" onclick="deleteMemory()">删除</button>
+        <button type="submit" class="btn-primary" id="btn-submit">创建</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Agent Modal -->
+<div id="agent-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeAgentModal()">
+  <div class="modal fade-in">
+    <h3 class="text-sm font-semibold text-[#f1f5f9] mb-4">注册 Agent</h3>
+    <form id="agent-form" class="space-y-3">
+      <div><label>Agent ID</label><input type="text" id="af-agent-id" placeholder="agent_xxx" required></div>
+      <div><label>名称</label><input type="text" id="af-name" placeholder="Agent 名称" required></div>
+      <div class="flex justify-end gap-2 pt-3">
+        <button type="button" class="btn-ghost" onclick="closeAgentModal()">取消</button>
+        <button type="submit" class="btn-primary">注册</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ==================== CONFIG ====================
+const API = 'http://localhost:8000';
+let currentTab = 'dashboard';
+let currentPage = 1;
+let editingId = null;
+
+// ==================== NAVIGATION ====================
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('section[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+  document.getElementById('tab-' + tab).classList.remove('hidden');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-' + tab).classList.add('active');
+  const titles = { dashboard: '仪表盘', memories: '记忆列表', search: '向量检索', agents: 'Agent 管理', config: '模型配置' };
+  document.getElementById('page-title').textContent = titles[tab];
+  if (tab === 'dashboard') { loadStats(); loadRecentMemories(); }
+  if (tab === 'memories') loadMemories();
+  if (tab === 'agents') loadAgents();
+  if (tab === 'config') loadConfig();
+}
+
+// ==================== API HELPERS ====================
+async function api(path, opts = {}) {
+  try {
+    const res = await fetch(API + path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    return await res.json();
+  } catch(e) { console.error('API error:', e); return null; }
+}
+
+// ==================== DASHBOARD ====================
+async function loadStats() {
+  const [stats, metrics] = await Promise.all([
+    api('/api/v1/stats'), api('/api/v1/metrics')
+  ]);
+  const data = stats?.data || {};
+  const s = { ...data, ...data.memory_db, ...data.vector_db };
+  const m = metrics?.metrics || {};
+  document.getElementById('stat-total').textContent = s.short_term_count || s.total_memories || m.memory_total || 0;
+  document.getElementById('stat-agents').textContent = s.agent_count || m.agent_count || 0;
+  document.getElementById('stat-hot').textContent = '—';
+  document.getElementById('stat-vectors').textContent = s.vector_count || m.vector_total || 0;
+  document.getElementById('stat-growth').textContent = `短期${s.short_term_count||0} · 长期${s.long_term_count||0}`;
+  // Build bagua distribution from category data
+  const categoryDist = {};
+  const catData = data.memory_db?.short_term_by_category || {};
+  Object.entries(catData).forEach(([k, v]) => { categoryDist[k] = v; });
+  renderCategoryChart(categoryDist);
+  renderAttributeChart({});
+}
+
+async function loadRecentMemories() {
+  const data = await api('/api/v1/memories?page_size=5');
+  const list = data?.list || [];
+  document.getElementById('recent-memories').innerHTML = list.map(m => `
+    <tr class="border-b border-[rgba(255,255,255,0.04)]">
+      <td class="py-2 px-3 font-mono text-[11px] text-[#64748b]">${(m.memory_id||'').slice(0,14)}…</td>
+      <td class="py-2 px-3 max-w-xs truncate text-[#cbd5e1]">${m.content||''}</td>
+      <td class="py-2 px-3">${categoryBadge(m.bagua_type)}</td>
+      <td class="py-2 px-3">${attributeBadge(m.wuxing)}</td>
+      <td class="py-2 px-3 text-[#64748b]">${m.sancai_layer||'-'}</td>
+      <td class="py-2 px-3 text-right">${hotBar(m.hot_score)}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="py-8 text-center text-[#475569]">暂无记忆</td></tr>';
+}
+
+// ==================== CHARTS ====================
+function renderCategoryChart(dist) {
+  const dom = document.getElementById('chart-category');
+  if (!dom) return;
+  const chart = echarts.init(dom, null, { backgroundColor: 'transparent' });
+  const names = { qian:'乾', kun:'坤', zhen:'震', xun:'巽', kan:'坎', li:'离', gen:'艮', dui:'兑' };
+  const colors = ['#6366f1','#8b5cf6','#a855f7','#d946ef','#ec4899','#f43f5e','#f97316','#f59e0b'];
+  const data = Object.entries(dist).map(([k,v],i) => ({ name: names[k]||k, value: v, itemStyle: { color: colors[i] } }));
+  chart.setOption({
+    tooltip: { trigger: 'item', backgroundColor: '#1e293b', borderColor: 'rgba(255,255,255,0.1)', textStyle: { color: '#f1f5f9', fontSize: 12 } },
+    series: [{ type: 'pie', radius: ['50%','75%'], center: ['50%','55%'], avoidLabelOverlap: false,
+      label: { color: '#94a3b8', fontSize: 11 }, data: data.length ? data : [{ name: '暂无数据', value: 1, itemStyle: { color: '#334155' } }]
+    }]
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+function renderAttributeChart(dist) {
+  const dom = document.getElementById('chart-attribute');
+  if (!dom) return;
+  const chart = echarts.init(dom, null, { backgroundColor: 'transparent' });
+  const wuxing = ['金','木','水','火','土'];
+  const values = wuxing.map(w => dist[w] || 0);
+  chart.setOption({
+    radar: {
+      indicator: wuxing.map(w => ({ name: w, max: Math.max(...values, 10) })),
+      center: ['50%','55%'], radius: '65%',
+      axisName: { color: '#94a3b8', fontSize: 11 },
+      splitArea: { areaStyle: { color: ['rgba(129,140,248,0.02)','rgba(129,140,248,0.04)'] } },
+      splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+      axisLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } }
+    },
+    series: [{ type: 'radar', data: [{ value: values, name: "属性", areaStyle: { color: 'rgba(139,92,246,0.2)' }, lineStyle: { color: '#a78bfa' }, itemStyle: { color: '#c4b5fd' } }] }]
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+// ==================== MEMORIES ====================
+async function loadMemories() {
+  const bagua = document.getElementById('filter-category')?.value || '';
+  const wuxing = document.getElementById('filter-attribute')?.value || '';
+  const sancai = document.getElementById('filter-layer')?.value || '';
+  const data = await api(`/api/v1/memories?page=${currentPage}&page_size=15`);
+  const list = data?.list || [];
+  document.getElementById('memories-table').innerHTML = list.map(m => `
+    <tr class="border-b border-[rgba(255,255,255,0.04)]">
+      <td class="py-2.5 px-3 font-mono text-[11px] text-[#64748b]">${(m.memory_id||'').slice(0,18)}</td>
+      <td class="py-2.5 px-3 max-w-xs truncate text-[#cbd5e1]">${m.content||''}</td>
+      <td class="py-2.5 px-3">${categoryBadge(m.bagua_type)}</td>
+      <td class="py-2.5 px-3">${attributeBadge(m.wuxing)}</td>
+      <td class="py-2.5 px-3 text-[#64748b]">${m.sancai_layer||'-'}</td>
+      <td class="py-2.5 px-3 text-right">${hotBar(m.hot_score)}</td>
+      <td class="py-2.5 px-3 text-right">
+        <button class="text-[#818cf8] hover:text-[#a5b4fc] text-[11px] mr-2" onclick="openEditModal('${m.memory_id}')">编辑</button>
+        <button class="text-[#f87171] hover:text-[#fca5a5] text-[11px]" onclick="confirmDelete('${m.memory_id}')">删除</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="7" class="py-10 text-center text-[#475569]">暂无记忆数据</td></tr>';
+  const total = data?.total || 0;
+  document.getElementById('memories-pagination').innerHTML = `
+    <span class="text-[11px] text-[#64748b]">共 ${total} 条</span>
+    <div class="flex gap-1">
+      <button class="btn-ghost text-[11px] px-3 py-1" onclick="currentPage=Math.max(1,currentPage-1);loadMemories()" ${currentPage===1?'disabled':''}>上一页</button>
+      <span class="px-3 py-1 text-[11px] text-[#94a3b8]">${currentPage}</span>
+      <button class="btn-ghost text-[11px] px-3 py-1" onclick="currentPage++;loadMemories()">下一页</button>
+    </div>`;
+}
+
+// ==================== MODAL ====================
+function openCreateModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = '新建记忆';
+  document.getElementById('btn-submit').textContent = '创建';
+  document.getElementById('btn-delete').classList.add('hidden');
+  document.getElementById('memory-form').reset();
+  document.getElementById('mf-memory-id').value = '';
+  document.getElementById('memory-modal').classList.remove('hidden');
+}
+
+async function openEditModal(id) {
+  editingId = id;
+  const resp = await api(`/api/v1/memories/${id}`);
+  const m = resp?.data || resp || {};
+  document.getElementById('modal-title').textContent = '编辑记忆';
+  document.getElementById('btn-submit').textContent = '保存';
+  document.getElementById('btn-delete').classList.remove('hidden');
+  document.getElementById('mf-memory-id').value = m.memory_id || id;
+  document.getElementById('mf-agent-id').value = m.agent_id || '';
+  document.getElementById('mf-category').value = m.bagua_type || '';
+  document.getElementById('mf-attribute').value = m.wuxing || '';
+  document.getElementById('mf-layer').value = m.sancai_layer || '';
+  document.getElementById('mf-tag').value = m.hexagram || '';
+  document.getElementById('mf-content').value = m.content || '';
+  document.getElementById('mf-hot').value = m.hot_score || 0.5;
+  document.getElementById('memory-modal').classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('memory-modal').classList.add('hidden'); }
+
+document.getElementById('memory-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = {
+    memory_id: document.getElementById('mf-memory-id').value || 'mem_' + Date.now(),
+    agent_id: document.getElementById('mf-agent-id').value,
+    bagua_type: document.getElementById('mf-category').value,
+    wuxing: document.getElementById('mf-attribute').value,
+    sancai_layer: document.getElementById('mf-layer').value,
+    hexagram: document.getElementById('mf-tag').value,
+    content: document.getElementById('mf-content').value,
+    hot_score: parseFloat(document.getElementById('mf-hot').value) || 0.5
+  };
+  if (editingId) {
+    await api(`/api/v1/memories/${editingId}`, { method: 'PUT', body: JSON.stringify(body) });
+  } else {
+    await api('/api/v1/memories', { method: 'POST', body: JSON.stringify(body) });
+  }
+  closeModal();
+  if (currentTab === 'memories') loadMemories();
+  if (currentTab === 'dashboard') { loadStats(); loadRecentMemories(); }
+});
+
+async function confirmDelete(id) {
+  if (confirm('确定删除这条记忆？')) {
+    await api(`/api/v1/memories/${id}`, { method: 'DELETE' });
+    if (currentTab === 'memories') loadMemories();
+    if (currentTab === 'dashboard') { loadStats(); loadRecentMemories(); }
+  }
+}
+
+async function deleteMemory() {
+  if (editingId) { await confirmDelete(editingId); closeModal(); }
+}
+
+// ==================== SEARCH ====================
+async function doSearch() {
+  const content = document.getElementById('search-input').value.trim();
+  if (!content) return;
+  const topK = document.getElementById('search-topk').value;
+  const agentId = document.getElementById('search-agent').value;
+  const params = new URLSearchParams({ content, top_k: topK });
+  if (agentId) params.set('agent_id', agentId);
+  const data = await api(`/api/v1/memories/search?${params}`);
+  const results = data?.data || [];
+  document.getElementById('search-results').innerHTML = results.length === 0
+    ? '<div class="glass rounded-xl p-8 text-center text-[#475569]">未找到相关记忆</div>'
+    : results.map(r => `
+      <div class="glass glass-hover rounded-xl p-4 transition-all">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            ${categoryBadge(r.bagua_type)} ${attributeBadge(r.wuxing)}
+            <span class="text-[10px] text-[#64748b]">${r.sancai_layer||''}</span>
+          </div>
+          <span class="text-[11px] text-[#818cf8]">匹配度: ${(r.similarity*100).toFixed(1)}%</span>
+        </div>
+        <p class="text-[13px] text-[#cbd5e1] leading-relaxed">${r.content||''}</p>
+        <div class="flex items-center gap-3 mt-2 text-[10px] text-[#475569]">
+          <span>ID: ${(r.memory_id||'').slice(0,16)}…</span>
+          <span>热度: ${(r.hot_score||0).toFixed(2)}</span>
+        </div>
+      </div>`).join('');
+}
+
+// ==================== AGENTS ====================
+async function loadAgents() {
+  const data = await api('/api/v1/agents');
+  const list = data?.list || data?.agents || data?.data || [];
+  document.getElementById('agents-list').innerHTML = list.length === 0
+    ? '<div class="col-span-3 glass rounded-xl p-8 text-center text-[#475569]">暂无 Agent</div>'
+    : list.map(a => `
+      <div class="glass glass-hover rounded-xl p-5">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">${(a.name||a.agent_id||'?')[0]}</div>
+          <div>
+            <div class="text-[13px] font-medium text-[#e2e8f0]">${a.name||a.agent_id}</div>
+            <div class="text-[10px] text-[#64748b] font-mono">${(a.agent_id||'').slice(0,20)}</div>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 text-[10px] text-[#64748b]">
+          <span>记忆: ${a.memory_count||0}</span>
+          <span>状态: <span class="text-emerald-400">活跃</span></span>
+        </div>
+      </div>`).join('');
+}
+
+function openAgentModal() { document.getElementById('agent-modal').classList.remove('hidden'); }
+function closeAgentModal() { document.getElementById('agent-modal').classList.add('hidden'); }
+document.getElementById('agent-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  await api('/api/v1/agents', {
+    method: 'POST',
+    body: JSON.stringify({
+      agent_id: document.getElementById('af-agent-id').value,
+      name: document.getElementById('af-name').value
+    })
+  });
+  closeAgentModal();
+  loadAgents();
+});
+
+// ==================== BADGES ====================
+const categoryColors = { '乾':'#6366f1', '坤':'#8b5cf6', '震':'#22c55e', '巽':'#10b981', '坎':'#3b82f6', '离':'#ef4444', '艮':'#f59e0b', '兑':'#ec4899' };
+const categoryIcon = { '乾':'⬡', '坤':'⬢', '震':'◆', '巽':'◇', '坎':'●', '离':'○', '艮':'■', '兑':'□' };
+function categoryBadge(type) {
+  if (!type) return '<span class="text-[#475569]">-</span>';
+  const c = categoryColors[type] || '#64748b';
+  const e = categoryIcon[type] || '';
+  return `<span class="category-tag" style="background:${c}20;color:${c};border:1px solid ${c}40">${e} ${type}</span>`;
+}
+const attributeColors = { '金':'#f59e0b', '木':'#22c55e', '水':'#3b82f6', '火':'#ef4444', '土':'#a16207' };
+function attributeBadge(type) {
+  if (!type) return '<span class="text-[#475569]">-</span>';
+  const c = attributeColors[type] || '#64748b';
+  return `<span class="attribute-tag" style="background:${c}20;color:${c};border:1px solid ${c}40">${type}</span>`;
+}
+function hotBar(score) {
+  const s = parseFloat(score) || 0;
+  const color = s > 0.7 ? '#22c55e' : s > 0.4 ? '#f59e0b' : '#ef4444';
+  return `<span style="color:${color};font-weight:600">${s.toFixed(2)}</span>`;
+}
+
+// ==================== CONFIG ====================
+async function loadConfig() {
+  const data = await api('/api/v1/config');
+  const cfg = data?.data || {};
+  // Embedding
+  const emb = cfg.embedding || {};
+  document.getElementById('cfg-emb-provider').value = emb.provider || 'siliconflow';
+  document.getElementById('cfg-emb-model').value = emb.siliconflow?.model || emb.model || '';
+  document.getElementById('cfg-emb-url').value = emb.siliconflow?.base_url || '';
+  document.getElementById('cfg-emb-key').value = '';
+  // Retrieval
+  const ret = cfg.retrieval || {};
+  document.getElementById('cfg-ret-strategy').value = ret.strategy || 'pure_embedding';
+  document.getElementById('cfg-ret-topk').value = ret.top_k || 10;
+  document.getElementById('cfg-ret-min-sim').value = ret.min_similarity || 0.3;
+  // LLM
+  const llm = (cfg.yijing || {}).llm || {};
+  document.getElementById('cfg-llm-url').value = llm.api_url || '';
+  document.getElementById('cfg-llm-model').value = llm.model || '';
+  showConfigStatus('配置已加载', 'info');
+}
+
+async function saveConfig() {
+  const provider = document.getElementById('cfg-emb-provider').value;
+  const keyVal = document.getElementById('cfg-emb-key').value;
+  const update = {
+    embedding: {
+      provider: provider,
+      model: document.getElementById('cfg-emb-model').value,
+      [provider]: {
+        model: document.getElementById('cfg-emb-model').value,
+        base_url: document.getElementById('cfg-emb-url').value,
+      }
+    },
+    retrieval: {
+      strategy: document.getElementById('cfg-ret-strategy').value,
+      top_k: parseInt(document.getElementById('cfg-ret-topk').value),
+      min_similarity: parseFloat(document.getElementById('cfg-ret-min-sim').value),
+    },
+    yijing: {
+      llm: {
+        api_url: document.getElementById('cfg-llm-url').value,
+        model: document.getElementById('cfg-llm-model').value,
+      }
+    }
+  };
+  // Only include API key if provided
+  if (keyVal && keyVal !== '***') {
+    update.embedding[provider].api_key = keyVal;
+  }
+  const res = await api('/api/v1/config', { method: 'PUT', body: JSON.stringify(update) });
+  if (res?.code === 200) {
+    showConfigStatus('✅ 配置已保存，需重启服务生效', 'success');
+  } else {
+    showConfigStatus('❌ 保存失败: ' + (res?.msg || '未知错误'), 'error');
+  }
+}
+
+function onEmbProviderChange() {
+  const provider = document.getElementById('cfg-emb-provider').value;
+  const defaults = {
+    siliconflow: { model: 'BAAI/bge-large-zh-v1.5', url: 'https://api.siliconflow.cn/v1' },
+    sentence_transformer: { model: 'sentence-transformers/all-MiniLM-L6-v2', url: '' },
+    openai: { model: 'text-embedding-3-small', url: 'https://api.openai.com/v1' },
+    hash: { model: 'hash-sha256', url: '' },
+  };
+  const d = defaults[provider] || {};
+  document.getElementById('cfg-emb-model').value = d.model;
+  document.getElementById('cfg-emb-url').value = d.url || '';
+}
+
+function showConfigStatus(msg, type) {
+  const el = document.getElementById('config-status');
+  const colors = { success: '#22c55e', error: '#ef4444', info: '#818cf8' };
+  el.innerHTML = `<div class="text-xs py-2" style="color:${colors[type]||'#94a3b8'}">${msg}</div>`;
+  if (type === 'success') setTimeout(() => el.innerHTML = '', 5000);
+}
+
+// ==================== INIT ====================
+function refreshAll() {
+  if (currentTab === 'dashboard') { loadStats(); loadRecentMemories(); }
+  if (currentTab === 'memories') loadMemories();
+  if (currentTab === 'agents') loadAgents();
+}
+switchTab('dashboard');
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+﻿# ============================================================
+# MetaMemory - ML/多模态 可选依赖
+# ============================================================
+# 安装：pip install -r requirements-ml.txt
+
+# 深度学习框架
+torch==2.1.0
+
+# HuggingFace Transformers
+transformers==4.35.2
+
+# 多模态 - 图像处理
+opencv-python==4.8.1.78
+
+# 多模态 - 语音处理
+whisper==1.0.1
+
+# 向量检索加速
+faiss-cpu==1.7.4
+
+# NLP 增强
+spacy==3.7.2

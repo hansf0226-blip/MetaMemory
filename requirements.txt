@@ -1,0 +1,57 @@
+﻿# ============================================================
+# MetaMemory - AI Agent 长期记忆系统 - 核心依赖
+# ============================================================
+# 安装方式：
+#   pip install -r requirements.txt
+#
+# 可选依赖（按需安装）：
+#   pip install -r requirements-ml.txt     # ML/多模态功能
+#   pip install -r requirements-data.txt   # 数据科学功能
+#   pip install -r requirements-all.txt    # 全部功能
+# ============================================================
+
+# ---------- Web 框架 ----------
+fastapi==0.104.1
+uvicorn[standard]==0.23.2
+
+# ---------- 数据库 & ORM ----------
+sqlalchemy==2.0.23
+
+# ---------- 数据验证 & 配置 ----------
+pydantic==2.5.0
+pydantic-settings==2.1.0
+pyyaml==6.0.1
+python-dotenv==1.0.0
+
+# ---------- 认证安全 ----------
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# ---------- 数据处理 ----------
+numpy==1.26.2
+
+# ---------- 任务调度 ----------
+apscheduler==3.10.4
+
+# ---------- 中文 NLP ----------
+jieba==0.42.1
+
+# ---------- Embedding/ML ----------
+torch>=2.0.0
+transformers>=4.35.0
+sentence-transformers>=2.2.0
+
+# ---------- MySQL 驱动（可选，生产推荐）----------
+pymysql>=1.1.0
+
+# ---------- OpenAI 兼容 API（可选，云 embedding）----------
+openai>=1.0.0
+
+# ---------- 开发依赖（可选）----------
+# pytest==7.4.3
+# pytest-cov==4.1.0
+# black==23.11.0
+# isort==5.12.0
+# flake8==6.1.0
+# mypy==1.7.1
