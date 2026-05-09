@@ -30,7 +30,7 @@
 ### 2. 安装
 
 ```bash
-cd MetaMemory记忆系统 - 完整源码
+cd MetaMemory
 pip install -r requirements.txt
 ```
 
