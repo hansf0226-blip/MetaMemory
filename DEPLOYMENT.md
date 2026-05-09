@@ -19,7 +19,7 @@
 
 ```bash
 # 1. 进入项目
-cd MetaMemory记忆系统 - 完整源码
+cd MetaMemory
 
 # 2. 安装依赖
 pip install -r requirements.txt

@@ -21,7 +21,7 @@ FROM python:3.11-slim
 
 LABEL org.opencontainers.image.title="MetaMemory"
 LABEL org.opencontainers.image.description="AI Agent Memory System with Structural Encoding"
-LABEL org.opencontainers.image.version="2.2.0"
+LABEL org.opencontainers.image.version="2.3.0"
 
 WORKDIR /app
 
