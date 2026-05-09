@@ -1,0 +1,26 @@
+---
+name: Bug report
+about: 报告一个 bug
+title: '[Bug] '
+labels: bug
+assignees: ''
+---
+
+## Bug 描述
+请描述 bug。
+
+## 复现步骤
+1.
+2.
+3.
+
+## 预期行为
+描述预期行为。
+
+## 环境信息
+- OS:
+- Python 版本:
+- MetaMemory 版本:
+
+## 相关截图
+如果有截图请上传。
